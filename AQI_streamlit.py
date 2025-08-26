@@ -106,3 +106,4 @@ else:
         st.session_state["chat_history"] = []
         st.session_state["is_first_time"] = False
         st.experimental_rerun()
+
