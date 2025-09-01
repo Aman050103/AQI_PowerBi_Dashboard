@@ -1,109 +1,137 @@
 import streamlit as st
-import hashlib
+import base64
+import pandas as pd
+import plotly.express as px
 
-# Set up page configuration
-st.set_page_config(page_title="AQI Dashboard", page_icon="🌍")
+# ----------------- CONFIG -----------------
+st.set_page_config(page_title="📊 Air Quality Dashboard", layout="wide")
 
-# Dummy user data (for demonstration purposes only, replace with a secure system in production)
-users = {
-    "user1": {"password": hashlib.sha256("password1".encode()).hexdigest(), "is_first_time": True},
-    "user2": {"password": hashlib.sha256("password2".encode()).hexdigest(), "is_first_time": False},
-}
+# Dummy credentials
+ADMIN_USERNAME = "aman"
+ADMIN_PASSWORD = "0888"
 
-# User Authentication
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def login(username, password):
-    if username in users:
-        if users[username]["password"] == hash_password(password):
-            return True, users[username]["is_first_time"]
-    return False, False
-
-def sign_up(username, password):
-    users[username] = {"password": hash_password(password), "is_first_time": True}
-    return True
-
-# Chatbot function (simple demo)
-def chatbot_response(user_input):
-    responses = {
-        "hello": "Hi there! How can I assist you with the AQI dashboard?",
-        "how to use": "You can explore the AQI data in the dashboard below. Select a location or use filters to customize the view.",
-        "what is aqi": "AQI stands for Air Quality Index. It indicates how clean or polluted the air is in a specific area.",
-    }
-    return responses.get(user_input.lower(), "I'm here to help! Try asking about AQI or how to use the dashboard.")
-
-# App layout
-st.title("🌍 AQI Dashboard")
-
-# Login/Sign-Up Section
+# ----------------- SESSION STATE -----------------
 if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
+    st.session_state.logged_in = False
+if "role" not in st.session_state:
+    st.session_state.role = ""
+if "show_admin_form" not in st.session_state:
+    st.session_state.show_admin_form = False
 
-if not st.session_state["logged_in"]:
-    st.sidebar.title("Welcome!")
-    st.sidebar.write("Please log in or sign up to access the AQI Dashboard.")
+# ----------------- BACKGROUND IMAGE -----------------
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
 
-    option = st.sidebar.radio("Choose an option", ["Login", "Sign Up"])
+bin_str = get_base64_of_bin_file("background.jpg")
 
-    username = st.sidebar.text_input("Username")
-    password = st.sidebar.text_input("Password", type="password")
+page_bg_img = f"""
+<style>
+[data-testid="stAppViewContainer"] {{
+    background-image: url("data:image/png;base64,{bin_str}");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}}
 
-    if option == "Login":
-        if st.sidebar.button("Log In"):
-            success, is_first_time = login(username, password)
-            if success:
-                st.session_state["logged_in"] = True
-                st.session_state["is_first_time"] = is_first_time
-                st.sidebar.success("Logged in successfully!")
-            else:
-                st.sidebar.error("Invalid credentials.")
-    elif option == "Sign Up":
-        if st.sidebar.button("Sign Up"):
-            if username in users:
-                st.sidebar.error("Username already exists. Try logging in.")
-            else:
-                sign_up(username, password)
-                st.sidebar.success("Signed up successfully! Please log in.")
+[data-testid="stHeader"] {{
+    background: rgba(0,0,0,0);
+}}
+
+.login-box {{
+    background: rgba(255, 255, 255, 0.85);
+    padding: 40px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.4);
+    width: 380px;
+    margin: auto;
+}}
+.stButton>button {{
+    width: 100%;
+    border-radius: 10px;
+    height: 50px;
+    font-size: 16px;
+    font-weight: bold;
+}}
+</style>
+"""
+st.markdown(page_bg_img, unsafe_allow_html=True)
+
+# ----------------- LOGIN PAGE -----------------
+def login():
+    st.markdown("<br><br><br>", unsafe_allow_html=True)  # spacing
+    col1, col2, col3 = st.columns([1,2,1])
+
+    with col2:
+        st.markdown('<div class="login-box">', unsafe_allow_html=True)
+        st.markdown("## 📊 Air Quality Dashboard")
+
+        if not st.session_state.show_admin_form:
+            st.write("### Choose Login Mode")
+
+            if st.button("👑 Login as Admin"):
+                st.session_state.show_admin_form = True
+
+            st.write("OR")
+
+            if st.button("🙋 Login as Guest"):
+                st.session_state.logged_in = True
+                st.session_state.role = "guest"
+                st.rerun()
+
+        # --- Admin Login Form ---
+        if st.session_state.show_admin_form and not st.session_state.logged_in:
+            st.write("### 👑 Admin Login")
+
+            username = st.text_input("👤 Username", key="admin_user")
+            password = st.text_input("🔑 Password", type="password", key="admin_pass")
+
+            if st.button("✅ Login"):
+                if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+                    st.session_state.logged_in = True
+                    st.session_state.role = "admin"
+                    st.session_state.show_admin_form = False
+                    st.success("✅ Login successful! Welcome Admin.")
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid username or password.")
+
+            if st.button("⬅️ Back"):
+                st.session_state.show_admin_form = False
+                st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------- MAIN APP -----------------
+def main_app():
+    st.title("📊 Air Quality Dashboard")
+    st.markdown(f"### You are logged in as: **{st.session_state.role.capitalize()}**")
+
+    if st.button("🚪 Logout"):
+        st.session_state.logged_in = False
+        st.session_state.role = ""
+        st.session_state.show_admin_form = False
+        st.rerun()
+
+    if st.session_state.role == "admin":
+        st.subheader("🔑 Admin Access")
+        powerbi_url = "https://app.powerbi.com/view?r=eyJrIjoiYWJlN2RmYzctOTRjOS00NmI1LWI4N2ItNzFkYWU2ZmQwMDQ3IiwidCI6IjM0YmQ4YmVkLTJhYzEtNDFhZS05ZjA4LTRlMGEzZjExNzA2YyJ9"
+        st.components.v1.iframe(powerbi_url, width=1000, height=600)
+
+    elif st.session_state.role == "guest":
+        st.subheader("👤 Guest Access")
+        st.info("ℹ️ Limited access – You can only view sample data.")
+        df = pd.DataFrame({
+            "City": ["Delhi", "Mumbai", "Chennai", "Kolkata"],
+            "AQI": [180, 150, 120, 130]
+        })
+        fig = px.bar(df, x="City", y="AQI", title="Sample AQI Data (Guest View)")
+        st.plotly_chart(fig)
+
+# ----------------- RUN APP -----------------
+if st.session_state.logged_in:
+    main_app()
 else:
-    # Welcome message for first-time users
-    if st.session_state["is_first_time"]:
-        st.success("Welcome to the AQI Dashboard! Here are some tips to get started...")
-        st.write("""
-        - Use the embedded Power BI dashboard below to view AQI data.
-        - Try the interactive filters and controls to customize your view.
-        """)
-
-    # Display AQI Dashboard iframe
-    st.write("Explore the AQI Dashboard below:")
-    st.markdown("""
-    <iframe title="AQI Finaldashboard aman" width="100%" height="500" 
-    src="https://app.powerbi.com/view?r=eyJrIjoiNWJmZmJmOTYtMjEzNi00YmRiLTgwMWUtYzcxZjI3YzdmNDVhIiwidCI6IjY2NmM0YmJlLTViY2YtNDU5ZS1hN2M5LTdmYjM3NjgxNzYzNiJ9" 
-    frameborder="0" allowFullScreen="true"></iframe>
-    """, unsafe_allow_html=True)
-
-    # Interactive location filter
-    location = st.selectbox("Select a Location", ["Location 1", "Location 2", "Location 3"])
-    st.write(f"You selected: {location}")
-
-    # Chatbot interaction
-    st.write("💬 Chatbot")
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
-
-    user_input = st.text_input("Ask something about AQI or the dashboard:", key="chatbot_input")
-    if st.button("Send"):
-        response = chatbot_response(user_input)
-        st.session_state["chat_history"].append({"user": user_input, "bot": response})
-
-    for chat in st.session_state["chat_history"]:
-        st.write(f"You: {chat['user']}")
-        st.write(f"Bot: {chat['bot']}")
-
-    # Log out button
-    if st.sidebar.button("Log Out"):
-        st.session_state["logged_in"] = False
-        st.session_state["chat_history"] = []
-        st.session_state["is_first_time"] = False
-        st.experimental_rerun()
-
+    login()
