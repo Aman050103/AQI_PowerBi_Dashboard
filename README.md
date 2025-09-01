@@ -24,7 +24,7 @@ This project demonstrates login-based access (Admin & Guest), real-time visualiz
 ## 📷 Screenshots
 
 ### 🔑 Admin Dashboard
-![Admin Dashboard](9aee0584-8917-4f51-8be0-8214ab2b58d7.png)
+![Admin Dashboard](https://github.com/Aman050103/AQI_PowerBi_Dashboard/blob/main/admin.png)
 
 ### 👤 Guest View
 ![Guest Dashboard](110bfbd4-bd46-45f9-9c35-3aaf07b7eb37.png)
